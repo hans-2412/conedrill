@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reactive Cone Drill</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #f0f0f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .app { width: 100%; max-width: 400px; padding: 2rem 1.5rem; }
+  h1 { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #444; text-align: center; margin-bottom: 2rem; }
+  .cone-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; width: 220px; height: 220px; margin: 0 auto 1.25rem; }
+  .cone { border-radius: 10px; border: 1px solid #222; background: #161616; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #444; text-align: center; line-height: 1.4; padding: 8px; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+  .cone.active { background: #1a3a1a; border-color: #3a7a3a; color: #7ecf7e; }
+  .direction-label { font-size: 40px; font-weight: 600; text-align: center; min-height: 52px; letter-spacing: -1px; color: #f0f0f0; margin-bottom: 0.25rem; }
+  .movement-label { font-size: 16px; text-align: center; min-height: 24px; color: #888; margin-bottom: 0.25rem; }
+  .rep-counter { font-size: 13px; color: #444; text-align: center; min-height: 18px; margin-bottom: 0.25rem; }
+  .phase-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #555; text-align: center; min-height: 16px; margin-bottom: 1rem; }
+  .divider { height: 1px; background: #1e1e1e; margin: 1.25rem 0; }
+  .section-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #555; margin-bottom: 8px; }
+  .pattern-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .pattern-btn { font-size: 11px; padding: 8px 4px; border-radius: 6px; border: 1px solid #222; background: #161616; color: #555; cursor: pointer; text-align: center; line-height: 1.3; transition: background 0.1s, border-color 0.1s, color 0.1s; }
+  .pattern-btn:hover { border-color: #333; color: #888; }
+  .pattern-btn.active { background: #1a3a1a; border-color: #3a7a3a; color: #7ecf7e; }
+  .timing-row { display: flex; align-items: center; gap: 12px; }
+  .timing-row label { font-size: 13px; color: #555; white-space: nowrap; }
+  input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 2px; background: #333; border-radius: 1px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #f0f0f0; cursor: pointer; }
+  .delay-val { font-size: 13px; font-weight: 500; color: #777; min-width: 26px; text-align: right; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-primary { flex: 1; padding: 14px; font-size: 16px; font-weight: 500; border-radius: 8px; border: none; background: #f0f0f0; color: #0f0f0f; cursor: pointer; transition: transform 0.08s; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { padding: 14px 20px; font-size: 16px; border-radius: 8px; border: 1px solid #222; background: transparent; color: #555; cursor: pointer; transition: border-color 0.1s, color 0.1s; }
+  .btn-secondary:hover { border-color: #444; color: #888; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Reactive Cone Drill</h1>
+
+  <div class="cone-grid">
+    <div class="cone" id="cone-fl">Front<br>left</div>
+    <div class="cone" id="cone-fr">Front<br>right</div>
+    <div class="cone" id="cone-bl">Back<br>left</div>
+    <div class="cone" id="cone-br">Back<br>right</div>
+  </div>
+
+  <div class="direction-label" id="dir-label">—</div>
+  <div class="movement-label" id="move-label"></div>
+  <div class="rep-counter" id="rep-counter"></div>
+  <div class="phase-label" id="phase-label"></div>
+
+  <div class="divider"></div>
+
+  <div class="section-label">Movement pattern</div>
+  <div class="pattern-grid">
+    <button class="pattern-btn active" data-move="Sprint" onclick="setPattern(this)">Sprint</button>
+    <button class="pattern-btn" data-move="Shuffle" onclick="setPattern(this)">Shuffle</button>
+    <button class="pattern-btn" data-move="Backpedal" onclick="setPattern(this)">Back-<br>pedal</button>
+    <button class="pattern-btn" data-move="Crossover" onclick="setPattern(this)">Cross-<br>over</button>
+    <button class="pattern-btn" data-move="Random" onclick="setPattern(this)">Random</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="timing-row">
+    <label for="delay-slider">Time between calls</label>
+    <input type="range" id="delay-slider" min="2" max="10" value="4" step="1" oninput="updateDelay(this.value)">
+    <span class="delay-val" id="delay-out">4s</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="start-btn" onclick="toggleDrill()">Start</button>
+    <button class="btn-secondary" onclick="resetDrill()">Reset</button>
+  </div>
+</div>
+
+<script>
+const CONES = [
+  { id: 'cone-fl', label: 'Front left'  },
+  { id: 'cone-fr', label: 'Front right' },
+  { id: 'cone-bl', label: 'Back left'   },
+  { id: 'cone-br', label: 'Back right'  },
+];
+const MOVES = ['Sprint', 'Shuffle', 'Backpedal', 'Crossover'];
+
+let running = false;
+let timer = null;
+let countdownTimer = null;
+let delayMs = 4000;
+let reps = 0;
+let lastCone = -1;
+let selectedMove = 'Sprint';
+const synth = window.speechSynthesis;
+
+function setPattern(btn) {
+  document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMove = btn.dataset.move;
+}
+
+function updateDelay(val) {
+  delayMs = parseInt(val) * 1000;
+  document.getElementById('delay-out').textContent = val + 's';
+  if (running) { clearInterval(timer); timer = setInterval(callDirection, delayMs); }
+}
+
+function speak(text) {
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.0;
+  synth.speak(u);
+}
+
+function pickCone() {
+  let idx;
+  do { idx = Math.floor(Math.random() * 4); } while (idx === lastCone);
+  lastCone = idx;
+  return CONES[idx];
+}
+
+function pickMove() {
+  if (selectedMove === 'Random') return MOVES[Math.floor(Math.random() * MOVES.length)];
+  return selectedMove;
+}
+
+function callDirection() {
+  const cone = pickCone();
+  const move = pickMove();
+  document.querySelectorAll('.cone').forEach(c => c.classList.remove('active'));
+  document.getElementById(cone.id).classList.add('active');
+  document.getElementById('dir-label').textContent = cone.label;
+  document.getElementById('move-label').textContent = move;
+  document.getElementById('phase-label').textContent = '';
+  speak(cone.label + ' — ' + move);
+  reps++;
+  document.getElementById('rep-counter').textContent = reps + (reps === 1 ? ' rep' : ' reps');
+}
+
+function startCountdown(cb) {
+  let count = 5;
+  document.getElementById('dir-label').textContent = count;
+  document.getElementById('move-label').textContent = '';
+  document.getElementById('phase-label').textContent = 'Get ready';
+  speak('Starting in 5');
+  countdownTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      document.getElementById('dir-label').textContent = count;
+    } else {
+      clearInterval(countdownTimer);
+      cb();
+    }
+  }, 1000);
+}
+
+function toggleDrill() {
+  running ? stopDrill() : startDrill();
+}
+
+function startDrill() {
+  running = true;
+  document.getElementById('start-btn').textContent = 'Pause';
+  startCountdown(() => {
+    callDirection();
+    timer = setInterval(callDirection, delayMs);
+  });
+}
+
+function stopDrill() {
+  running = false;
+  clearInterval(timer); timer = null;
+  clearInterval(countdownTimer); countdownTimer = null;
+  synth.cancel();
+  document.getElementById('start-btn').textContent = 'Resume';
+  document.getElementById('phase-label').textContent = 'Paused';
+}
+
+function resetDrill() {
+  stopDrill();
+  running = false; reps = 0; lastCone = -1;
+  document.getElementById('start-btn').textContent = 'Start';
+  document.getElementById('dir-label').textContent = '—';
+  document.getElementById('move-label').textContent = '';
+  document.getElementById('rep-counter').textContent = '';
+  document.getElementById('phase-label').textContent = '';
+  document.querySelectorAll('.cone').forEach(c => c.classList.remove('active'));
+}
+</script>
+</body>
+</html>
