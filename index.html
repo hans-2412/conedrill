@@ -128,6 +128,7 @@ let running = false;
 let timer = null;
 let countdownTimer = null;
 let delayMs = 4000;
+let lastCallTime = 0;
 let repsPerCone = 3;
 let selectedMove = 'Sprint';
 let coneCounts = [0,0,0,0];
@@ -144,7 +145,14 @@ function setPattern(btn) {
 function updateDelay(val) {
   delayMs = parseInt(val) * 1000;
   document.getElementById('delay-out').textContent = val + 's';
-  if (running) { clearInterval(timer); timer = setInterval(callDirection, delayMs); }
+  if (running) {
+    clearTimeout(timer);
+    const remaining = Math.max(0, delayMs - (Date.now() - lastCallTime));
+    timer = setTimeout(() => {
+      callDirection();
+      timer = setInterval(callDirection, delayMs);
+    }, remaining);
+  }
 }
 
 function updateRepsTarget(val) {
@@ -194,6 +202,7 @@ function updateConeVisuals() {
 }
 
 function callDirection() {
+  lastCallTime = Date.now();
   const result = pickCone();
   if (!result) { endSet(); return; }
   const { cone, idx } = result;
@@ -209,14 +218,14 @@ function callDirection() {
   const total = repsPerCone * 4;
   document.getElementById('rep-counter').textContent = totalCalled + ' / ' + total;
   if (totalCalled >= total) {
-    clearInterval(timer); timer = null;
-    setTimeout(endSet, delayMs);
+    clearTimeout(timer); timer = null;
+    setTimeout(endSet, 1500);
   }
 }
 
 function endSet() {
   running = false;
-  clearInterval(timer); timer = null;
+  clearTimeout(timer); timer = null;
   synth.cancel();
   document.getElementById('start-btn').textContent = 'Start';
   document.getElementById('dir-label').textContent = 'Done';
@@ -236,6 +245,7 @@ function startCountdown(cb) {
     count--;
     if (count > 0) {
       document.getElementById('dir-label').textContent = count;
+      speak(String(count));
     } else {
       clearInterval(countdownTimer);
       cb();
@@ -258,7 +268,7 @@ function startDrill() {
 
 function stopDrill() {
   running = false;
-  clearInterval(timer); timer = null;
+  clearTimeout(timer); timer = null;
   clearInterval(countdownTimer); countdownTimer = null;
   synth.cancel();
   document.getElementById('start-btn').textContent = 'Resume';
