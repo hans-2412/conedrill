@@ -71,7 +71,6 @@
   .modal .tip { background: #f7f7f5; border: 1.5px solid #e5e5e5; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; }
   .modal .tip p { color: #888; font-size: 12px; }
   .modal .tip strong { color: #555; }
-
 </style>
 </head>
 <body>
@@ -145,12 +144,10 @@
 
     <h2>Run the drill</h2>
     <p>Tap <strong>Start</strong>. A 5-second countdown plays, then the app calls a cone name and movement out loud. Sprint to that cone, return to the middle, and wait for the next call.</p>
-    <p style="margin-top:0.5rem">Cones turn <span style="color:#7ecf7e">green</span> when active and <span style="color:#378ADD">blue</span> when their reps are done. The set ends automatically when all cones are complete.</p>
+    <p style="margin-top:0.5rem">Cones turn <span style="color:#4caf50">green</span> when active and <span style="color:#4a7fd4">blue</span> when their reps are done. The set ends automatically when all cones are complete.</p>
 
     <h2>Pause / Reset</h2>
     <p>Tap <strong>Pause</strong> mid-set to stop the timer. Tap <strong>Reset</strong> to clear everything and start fresh.</p>
-
-
   </div>
 </div>
 
@@ -206,14 +203,14 @@ document.addEventListener('visibilitychange', () => {
 });
 
 const el = {
-  dirLabel:    document.getElementById('dir-label'),
-  moveLabel:   document.getElementById('move-label'),
-  repCounter:  document.getElementById('rep-counter'),
-  phaseLabel:  document.getElementById('phase-label'),
-  startBtn:    document.getElementById('start-btn'),
-  delayOut:    document.getElementById('delay-out'),
-  repsOut:     document.getElementById('reps-out'),
-  infoModal:   document.getElementById('info-modal'),
+  dirLabel:       document.getElementById('dir-label'),
+  moveLabel:      document.getElementById('move-label'),
+  repCounter:     document.getElementById('rep-counter'),
+  phaseLabel:     document.getElementById('phase-label'),
+  startBtn:       document.getElementById('start-btn'),
+  delayOut:       document.getElementById('delay-out'),
+  repsOut:        document.getElementById('reps-out'),
+  infoModal:      document.getElementById('info-modal'),
   feedbackText:   document.getElementById('feedback-text'),
   feedbackThanks: document.getElementById('feedback-thanks'),
 };
@@ -411,7 +408,7 @@ function showFeedbackMsg(text, color, autoClear) {
     feedbackResetTimer = setTimeout(() => {
       el.feedbackThanks.style.display = 'none';
       el.feedbackThanks.textContent = 'Thanks for the feedback!';
-      el.feedbackThanks.style.color = '#7ecf7e';
+      el.feedbackThanks.style.color = '#4caf50';
     }, 3000);
   }
 }
@@ -430,7 +427,7 @@ async function submitFeedback() {
     });
     if (res.ok) {
       el.feedbackText.value = '';
-      showFeedbackMsg('Thanks for the feedback!', '#7ecf7e', true);
+      showFeedbackMsg('Thanks for the feedback!', '#4caf50', true);
     } else {
       showFeedbackMsg('Something went wrong. Try again.', '#e87070', true);
     }
