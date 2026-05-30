@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reactive Cone Drill</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f7f5; color: #111; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 2rem 1.5rem; }
+  .app { width: 100%; max-width: 400px; }
+  h1 { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #999; text-align: center; margin-bottom: 2rem; }
+  .cone-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; width: 220px; height: 220px; margin: 0 auto 1.25rem; }
+  .cone { border-radius: 12px; border: 1.5px solid #e5e5e5; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #bbb; text-align: center; line-height: 1.4; padding: 8px; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+  .cone.active { background: #f0faf0; border-color: #4caf50; color: #2e7d32; }
+  .cone.done { background: #eff4ff; border-color: #4a7fd4; color: #2554a8; }
+  .direction-label { font-size: 40px; font-weight: 700; text-align: center; min-height: 52px; letter-spacing: -1.5px; color: #111; margin-bottom: 0.25rem; }
+  .movement-label { font-size: 16px; text-align: center; min-height: 24px; color: #666; margin-bottom: 0.25rem; }
+  .rep-counter { font-size: 13px; color: #aaa; text-align: center; min-height: 18px; margin-bottom: 0.25rem; }
+  .phase-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #bbb; text-align: center; min-height: 16px; margin-bottom: 1rem; }
+  .divider { height: 1px; background: #ebebeb; margin: 1.25rem 0; }
+  .section-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #bbb; font-weight: 600; margin-bottom: 8px; }
+  .pattern-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .pattern-btn { font-size: 11px; font-weight: 500; padding: 8px 4px; border-radius: 8px; border: 1.5px solid #e5e5e5; background: #fff; color: #aaa; cursor: pointer; text-align: center; line-height: 1.3; transition: background 0.1s, border-color 0.1s, color 0.1s; }
+  .pattern-btn:hover { border-color: #ccc; color: #666; }
+  .pattern-btn.active { background: #f0faf0; border-color: #4caf50; color: #2e7d32; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label { font-size: 13px; color: #888; white-space: nowrap; }
+  input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 2px; background: #ddd; border-radius: 1px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #111; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+  .slider-val { font-size: 13px; font-weight: 600; color: #555; min-width: 64px; text-align: right; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-primary { flex: 1; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 10px; border: none; background: #111; color: #fff; cursor: pointer; transition: transform 0.08s, background 0.1s; }
+  .btn-primary:active { transform: scale(0.98); background: #333; }
+  .btn-secondary { padding: 14px 20px; font-size: 16px; font-weight: 500; border-radius: 10px; border: 1.5px solid #e5e5e5; background: #fff; color: #aaa; cursor: pointer; transition: border-color 0.1s, color 0.1s; }
+  .btn-secondary:hover { border-color: #bbb; color: #666; }
+
+  .feedback-section { width: 100%; max-width: 400px; margin-top: 2rem; }
+  .feedback-toggle { width: 100%; padding: 12px; font-size: 13px; background: #fff; border: 1.5px solid #e5e5e5; border-radius: 10px; color: #aaa; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: border-color 0.1s, color 0.1s; }
+  .feedback-toggle:hover { border-color: #bbb; color: #777; }
+  .feedback-toggle .arrow { font-size: 10px; transition: transform 0.2s; }
+  .feedback-toggle.open .arrow { transform: rotate(180deg); }
+  .feedback-body { display: none; margin-top: 8px; background: #fff; border: 1.5px solid #e5e5e5; border-radius: 10px; padding: 1rem; }
+  .feedback-body.open { display: block; }
+  .feedback-body textarea { width: 100%; background: #f7f7f5; border: 1.5px solid #e5e5e5; border-radius: 8px; color: #111; font-size: 13px; font-family: inherit; padding: 10px; resize: vertical; min-height: 90px; outline: none; transition: border-color 0.1s; }
+  .feedback-body textarea:focus { border-color: #bbb; }
+  .feedback-body textarea::placeholder { color: #ccc; }
+  .feedback-submit { margin-top: 8px; padding: 10px 18px; font-size: 13px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-weight: 600; transition: transform 0.08s; }
+  .feedback-submit:active { transform: scale(0.98); }
+  .feedback-thanks { font-size: 13px; color: #4caf50; margin-top: 8px; display: none; }
+
+  /* Info button */
+  .header-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 2rem; }
+  .header-row h1 { margin-bottom: 0; }
+  .info-btn { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #ddd; background: transparent; color: #bbb; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: border-color 0.1s, color 0.1s; flex-shrink: 0; }
+  .info-btn:hover { border-color: #aaa; color: #888; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border: 1.5px solid #e5e5e5; border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 360px; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .modal-title { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #bbb; }
+  .modal-close { background: transparent; border: none; color: #bbb; font-size: 18px; cursor: pointer; padding: 0; line-height: 1; }
+  .modal-close:hover { color: #666; }
+  .modal h2 { font-size: 14px; font-weight: 600; color: #111; margin: 1rem 0 0.4rem; }
+  .modal h2:first-of-type { margin-top: 0; }
+  .modal p { font-size: 13px; color: #666; line-height: 1.6; }
+  .modal ul { padding-left: 1.1rem; margin: 0; }
+  .modal li { font-size: 13px; color: #666; line-height: 1.8; }
+  .modal .tip { background: #f7f7f5; border: 1.5px solid #e5e5e5; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; }
+  .modal .tip p { color: #888; font-size: 12px; }
+  .modal .tip strong { color: #555; }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header-row">
+    <h1>Reactive Cone Drill</h1>
+    <button class="info-btn" onclick="toggleInfo()" aria-label="How to use">ⓘ</button>
+  </div>
+
+  <div class="cone-grid">
+    <div class="cone" id="cone-fl">Front<br>left</div>
+    <div class="cone" id="cone-fr">Front<br>right</div>
+    <div class="cone" id="cone-bl">Back<br>left</div>
+    <div class="cone" id="cone-br">Back<br>right</div>
+  </div>
+
+  <div class="direction-label" id="dir-label">—</div>
+  <div class="movement-label" id="move-label"></div>
+  <div class="rep-counter" id="rep-counter"></div>
+  <div class="phase-label" id="phase-label"></div>
+
+  <div class="divider"></div>
+
+  <div class="section-label">Movement pattern</div>
+  <div class="pattern-grid">
+    <button class="pattern-btn active" data-move="Sprint" onclick="setPattern(this)">Sprint</button>
+    <button class="pattern-btn" data-move="Shuffle" onclick="setPattern(this)">Shuffle</button>
+    <button class="pattern-btn" data-move="Backpedal" onclick="setPattern(this)">Back-<br>pedal</button>
+    <button class="pattern-btn" data-move="Crossover" onclick="setPattern(this)">Cross-<br>over</button>
+    <button class="pattern-btn" data-move="Random" onclick="setPattern(this)">Random</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="slider-row">
+    <label for="delay-slider">Time between calls</label>
+    <input type="range" id="delay-slider" min="2" max="10" value="4" step="1" oninput="updateDelay(this.value)">
+    <span class="slider-val" id="delay-out">4s</span>
+  </div>
+  <div class="slider-row">
+    <label for="reps-slider">Reps per cone</label>
+    <input type="range" id="reps-slider" min="1" max="10" value="3" step="1" oninput="updateRepsTarget(this.value)">
+    <span class="slider-val" id="reps-out">3 × 4 = 12</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="start-btn" onclick="toggleDrill()">Start</button>
+    <button class="btn-secondary" onclick="resetDrill()">Reset</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="info-modal" onclick="handleModalClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">How to use</span>
+      <button class="modal-close" onclick="toggleInfo()" aria-label="Close">✕</button>
+    </div>
+
+    <h2>Set up your cones</h2>
+    <p>Place 4 cones on the ground matching the grid on screen — front left, front right, back left, back right. Stand in the middle.</p>
+
+    <h2>Configure your drill</h2>
+    <ul>
+      <li><strong>Movement pattern</strong> — how you travel to each cone (sprint, shuffle, backpedal, crossover, or random)</li>
+      <li><strong>Time between calls</strong> — how long you have to reach each cone before the next one is called</li>
+      <li><strong>Reps per cone</strong> — how many times each cone gets called before the set ends</li>
+    </ul>
+
+    <h2>Run the drill</h2>
+    <p>Tap <strong>Start</strong>. A 5-second countdown plays, then the app calls a cone name and movement out loud. Sprint to that cone, return to the middle, and wait for the next call.</p>
+    <p style="margin-top:0.5rem">Cones turn <span style="color:#7ecf7e">green</span> when active and <span style="color:#378ADD">blue</span> when their reps are done. The set ends automatically when all cones are complete.</p>
+
+    <h2>Pause / Reset</h2>
+    <p>Tap <strong>Pause</strong> mid-set to stop the timer. Tap <strong>Reset</strong> to clear everything and start fresh.</p>
+
+
+  </div>
+</div>
+
+<div class="feedback-section">
+  <button class="feedback-toggle" id="feedback-toggle" onclick="toggleFeedback()">
+    <span>Leave feedback</span>
+    <span class="arrow">▼</span>
+  </button>
+  <div class="feedback-body" id="feedback-body">
+    <textarea id="feedback-text" placeholder="What do you think? Any suggestions or issues?"></textarea>
+    <br>
+    <button class="feedback-submit" onclick="submitFeedback()">Send feedback</button>
+    <div class="feedback-thanks" id="feedback-thanks">Thanks for the feedback!</div>
+  </div>
+</div>
+
+
+<script>
+const CONES = [
+  { id: 'cone-fl', label: 'Front left'  },
+  { id: 'cone-fr', label: 'Front right' },
+  { id: 'cone-bl', label: 'Back left'   },
+  { id: 'cone-br', label: 'Back right'  },
+];
+const MOVES = ['Sprint', 'Shuffle', 'Backpedal', 'Crossover'];
+
+let audioUnlocked = false;
+let running = false;
+let timer = null;
+let countdownTimer = null;
+let delayMs = 4000;
+let lastCallTime = 0;
+let repsPerCone = 3;
+let selectedMove = 'Sprint';
+let coneCounts = [0,0,0,0];
+let lastCone = -1;
+let totalCalled = 0;
+let feedbackResetTimer = null;
+let wakeLock = null;
+const synth = window.speechSynthesis;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running) requestWakeLock();
+});
+
+const el = {
+  dirLabel:    document.getElementById('dir-label'),
+  moveLabel:   document.getElementById('move-label'),
+  repCounter:  document.getElementById('rep-counter'),
+  phaseLabel:  document.getElementById('phase-label'),
+  startBtn:    document.getElementById('start-btn'),
+  delayOut:    document.getElementById('delay-out'),
+  repsOut:     document.getElementById('reps-out'),
+  infoModal:   document.getElementById('info-modal'),
+  feedbackText:   document.getElementById('feedback-text'),
+  feedbackThanks: document.getElementById('feedback-thanks'),
+};
+
+function setPattern(btn) {
+  document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMove = btn.dataset.move;
+}
+
+function updateDelay(val) {
+  delayMs = parseInt(val) * 1000;
+  el.delayOut.textContent = val + 's';
+  if (running) {
+    clearTimeout(timer);
+    const remaining = Math.max(0, delayMs - (Date.now() - lastCallTime));
+    timer = setTimeout(callDirection, remaining);
+  }
+}
+
+function updateRepsTarget(val) {
+  repsPerCone = parseInt(val);
+  el.repsOut.textContent = val + ' × 4 = ' + (val * 4);
+}
+
+function speak(text) {
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.0;
+  synth.speak(u);
+}
+
+function getAvailableCones() {
+  return CONES.reduce((acc, c, i) => {
+    if (coneCounts[i] < repsPerCone && i !== lastCone) acc.push(i);
+    return acc;
+  }, []);
+}
+
+function pickCone() {
+  let available = getAvailableCones();
+  if (available.length === 0) {
+    available = CONES.reduce((acc, c, i) => {
+      if (coneCounts[i] < repsPerCone) acc.push(i);
+      return acc;
+    }, []);
+  }
+  if (available.length === 0) return null;
+  const idx = available[Math.floor(Math.random() * available.length)];
+  lastCone = idx;
+  return { cone: CONES[idx], idx };
+}
+
+function pickMove() {
+  if (selectedMove === 'Random') return MOVES[Math.floor(Math.random() * MOVES.length)];
+  return selectedMove;
+}
+
+function updateConeVisuals() {
+  CONES.forEach((c, i) => {
+    const el = document.getElementById(c.id);
+    el.classList.remove('active', 'done');
+    if (coneCounts[i] >= repsPerCone) el.classList.add('done');
+  });
+}
+
+function callDirection() {
+  lastCallTime = Date.now();
+  const result = pickCone();
+  if (!result) { endSet(); return; }
+  const { cone, idx } = result;
+  const move = pickMove();
+  coneCounts[idx]++;
+  totalCalled++;
+  updateConeVisuals();
+  document.getElementById(cone.id).classList.add('active');
+  el.dirLabel.textContent = cone.label;
+  el.moveLabel.textContent = move;
+  el.phaseLabel.textContent = '';
+  speak(cone.label + ' — ' + move);
+  const total = repsPerCone * 4;
+  el.repCounter.textContent = totalCalled + ' / ' + total;
+  if (totalCalled >= total) {
+    timer = null;
+    setTimeout(endSet, 1500);
+  } else {
+    timer = setTimeout(callDirection, delayMs);
+  }
+}
+
+function endSet() {
+  running = false;
+  clearTimeout(timer);
+  timer = null;
+  synth.cancel();
+  releaseWakeLock();
+  el.startBtn.textContent = 'Start';
+  el.dirLabel.textContent = 'Done';
+  el.moveLabel.textContent = '';
+  el.phaseLabel.textContent = 'Set complete — rest up';
+  document.querySelectorAll('.cone').forEach(c => c.classList.remove('active'));
+  speak('Set complete. Well done.');
+  setTimeout(() => {
+    coneCounts = [0,0,0,0]; lastCone = -1; totalCalled = 0;
+    el.dirLabel.textContent = '—';
+    el.repCounter.textContent = '';
+    el.phaseLabel.textContent = '';
+    document.querySelectorAll('.cone').forEach(c => c.classList.remove('done'));
+  }, 4000);
+}
+
+function startCountdown(cb) {
+  let count = 5;
+  el.dirLabel.textContent = count;
+  el.moveLabel.textContent = '';
+  el.phaseLabel.textContent = 'Get ready';
+  speak('Starting in 5');
+  countdownTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      el.dirLabel.textContent = count;
+      speak(String(count));
+    } else {
+      clearInterval(countdownTimer);
+      cb();
+    }
+  }, 1000);
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  const u = new SpeechSynthesisUtterance('');
+  u.volume = 0;
+  synth.speak(u);
+  synth.cancel();
+  audioUnlocked = true;
+}
+
+function toggleDrill() {
+  unlockAudio();
+  running ? stopDrill() : startDrill();
+}
+
+function startDrill() {
+  running = true;
+  el.startBtn.textContent = 'Pause';
+  requestWakeLock();
+  startCountdown(() => {
+    callDirection();
+  });
+}
+
+function stopDrill() {
+  running = false;
+  clearTimeout(timer); timer = null;
+  clearInterval(countdownTimer); countdownTimer = null;
+  synth.cancel();
+  releaseWakeLock();
+  el.startBtn.textContent = 'Resume';
+  el.phaseLabel.textContent = 'Paused';
+}
+
+function resetDrill() {
+  stopDrill();
+  running = false; coneCounts = [0,0,0,0]; lastCone = -1; totalCalled = 0;
+  el.startBtn.textContent = 'Start';
+  el.dirLabel.textContent = '—';
+  el.moveLabel.textContent = '';
+  el.repCounter.textContent = '';
+  el.phaseLabel.textContent = '';
+  document.querySelectorAll('.cone').forEach(c => c.classList.remove('active', 'done'));
+}
+
+function toggleInfo() {
+  el.infoModal.classList.toggle('open');
+}
+
+function handleModalClick(e) {
+  if (e.target === el.infoModal) toggleInfo();
+}
+
+function toggleFeedback() {
+  const toggle = document.getElementById('feedback-toggle');
+  const body = document.getElementById('feedback-body');
+  toggle.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function showFeedbackMsg(text, color, autoClear) {
+  clearTimeout(feedbackResetTimer);
+  el.feedbackThanks.textContent = text;
+  el.feedbackThanks.style.color = color;
+  el.feedbackThanks.style.display = 'block';
+  if (autoClear) {
+    feedbackResetTimer = setTimeout(() => {
+      el.feedbackThanks.style.display = 'none';
+      el.feedbackThanks.textContent = 'Thanks for the feedback!';
+      el.feedbackThanks.style.color = '#7ecf7e';
+    }, 3000);
+  }
+}
+
+async function submitFeedback() {
+  const text = el.feedbackText.value.trim();
+  if (!text) return;
+  const btn = document.querySelector('.feedback-submit');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('https://formspree.io/f/xkoepdaa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    if (res.ok) {
+      el.feedbackText.value = '';
+      showFeedbackMsg('Thanks for the feedback!', '#7ecf7e', true);
+    } else {
+      showFeedbackMsg('Something went wrong. Try again.', '#e87070', true);
+    }
+  } catch {
+    showFeedbackMsg('No connection. Try again.', '#e87070', true);
+  }
+  btn.textContent = 'Send feedback';
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
